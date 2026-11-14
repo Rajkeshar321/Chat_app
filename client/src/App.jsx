@@ -1,26 +1,49 @@
+
 import React, { useContext } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/ProfilePage'
-import { Toaster } from "react-hot-toast"
+import { Toaster } from 'react-hot-toast'
 import { AuthContext } from '../context/AuthContext'
+import bgImage from './assets/bgImage.svg'
 
 const App = () => {
   const { authUser } = useContext(AuthContext)
 
   return (
-    <div className="bg-[url('./src/assets/bgImage.svg')] bg-contain">
+    <div
+      className="min-h-screen bg-contain bg-center bg-no-repeat"
+      style={{
+        backgroundImage: `url(${bgImage})`
+      }}
+    >
       <Toaster />
+
       <Routes>
-        {/* Protected Route: Only logged-in users can see HomePage */}
-        <Route path='/' element={authUser ? <HomePage /> : <Navigate to="/login" />} />
-        
-        {/* Public/Auth Route: Logged-in users should be sent to HomePage, logged-out users see LoginPage */}
-        <Route path='/login' element={!authUser ? <LoginPage /> : <Navigate to="/" />} />
-        
-        {/* Protected Route: Only logged-in users can see ProfilePage */}
-        <Route path='/profile' element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
+        {/* Protected Home Route */}
+        <Route
+          path="/"
+          element={
+            authUser ? <HomePage /> : <Navigate to="/login" />
+          }
+        />
+
+        {/* Login Route */}
+        <Route
+          path="/login"
+          element={
+            !authUser ? <LoginPage /> : <Navigate to="/" />
+          }
+        />
+
+        {/* Protected Profile Route */}
+        <Route
+          path="/profile"
+          element={
+            authUser ? <ProfilePage /> : <Navigate to="/login" />
+          }
+        />
       </Routes>
     </div>
   )
