@@ -1,4 +1,3 @@
-
 import express from "express";
 import "dotenv/config";
 import cors from "cors";
@@ -9,40 +8,38 @@ import { connectDB } from "./lib/db.js";
 import userRouter from "./routes/userRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
 
+// Create Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
 
-const frontendUrl = process.env.CLIENT_URL;
-
-const corsOptions = {
-    origin: frontendUrl || "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-};
-
-app.use(cors(corsOptions));
-app.use(express.json({ limit: "4mb" }));
-
+// Initialize Socket.IO server
 export const io = new Server(server, {
-    cors: corsOptions,
+    cors: {
+        origin: "*",
+    },
 });
 
+// Store online users: { userId: socketId }
 export const userSocketMap = {};
 
+// Socket.IO connection handler
 io.on("connection", (socket) => {
     const userId = socket.handshake.query.userId;
 
-    console.log("Socket connected:", socket.id);
-    console.log("User ID:", userId || "Unknown");
+    console.log("User Connected:", userId || "Unknown user");
 
     if (userId) {
         userSocketMap[userId] = socket.id;
     }
 
+    // Send online user IDs to all connected clients
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
-    socket.on("disconnect", (reason) => {
-        console.log("Socket disconnected:", reason);
+    // Handle user disconnection
+    socket.on("disconnect", () => {
+        console.log("User Disconnected:", userId || "Unknown user");
 
+        // Prevent an old socket from deleting a newer connection
         if (userId && userSocketMap[userId] === socket.id) {
             delete userSocketMap[userId];
         }
@@ -51,15 +48,11 @@ io.on("connection", (socket) => {
     });
 });
 
-// Log Socket.IO handshake errors
-io.engine.on("connection_error", (err) => {
-    console.error("Socket.IO connection error:", {
-        code: err.code,
-        message: err.message,
-        context: err.context,
-    });
-});
+// Middleware setup
+app.use(express.json({ limit: "4mb" }));
+app.use(cors());
 
+// Routes setup
 app.get("/", (req, res) => {
     res.send("Server is live");
 });
@@ -71,19 +64,11 @@ app.use("/api/status", (req, res) => {
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
 
+// Connect to MongoDB and start server
+await connectDB();
+
 const PORT = process.env.PORT || 5000;
 
-const startServer = async () => {
-    try {
-        await connectDB();
-
-        server.listen(PORT, "0.0.0.0", () => {
-            console.log(`Server running on port ${PORT}`);
-        });
-    } catch (error) {
-        console.error("Server startup failed:", error);
-        process.exit(1);
-    }
-};
-
-startServer();
+server.listen(PORT, () => {
+    console.log("Server is running on PORT:", PORT);
+});
